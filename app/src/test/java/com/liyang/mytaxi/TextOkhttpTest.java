@@ -3,8 +3,11 @@ package com.liyang.mytaxi;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 
+import okhttp3.Cache;
+import okhttp3.CacheControl;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -76,6 +79,35 @@ public class TextOkhttpTest {
         try {
             Response response=client.newCall(request).execute();
             System.out.print(response.body().string());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void textCache(){
+        Cache cache=new Cache(new File("cache.cache"),1024*1024*10);
+        OkHttpClient client=new OkHttpClient.Builder()
+                .cache(cache)
+                .build();
+        Request request=new Request.Builder()
+                .url("http://httpbin.org/get?id=id")
+                .cacheControl(CacheControl.FORCE_CACHE)
+                .build();
+        try {
+            Response response =client.newCall(request).execute();
+            Response responseCache=response.cacheResponse();
+            Response responseNet=response.networkResponse();
+            if (responseCache != null) {
+                // 从缓存响应
+                System.out.println("response from cache");
+            }
+            if (responseNet != null) {
+                // 从缓存响应
+                System.out.println("response from net");
+            }
+
+            System.out.println("response:" + response.body().string());
         } catch (IOException e) {
             e.printStackTrace();
         }
