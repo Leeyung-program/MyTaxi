@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -41,6 +42,36 @@ public class TextOkhttpTest {
         Request request=new Request.Builder()
                 .url("http://httpbin.org/post")
                 .post(body)
+                .build();
+        try {
+            Response response=client.newCall(request).execute();
+            System.out.print(response.body().string());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void textInterceptor(){
+        Interceptor interceptor=new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
+                long startTime=System.currentTimeMillis();
+                Request request=chain.request();
+                Response response=chain.proceed(request);
+                long endTime=System.currentTimeMillis();
+                System.out.print("time========="+(startTime-endTime));
+                return response;
+            }
+        };
+        OkHttpClient client =new OkHttpClient.Builder()
+                .addInterceptor(interceptor)
+                .build();
+        MediaType mt=MediaType.parse("application/json;charset=utf-8");
+        RequestBody rebody=RequestBody.create(mt,"{\"name\",\"liyang\"}");
+        Request request=new Request.Builder()
+                .url("http://httpbin.org/post")
+                .post(rebody)
                 .build();
         try {
             Response response=client.newCall(request).execute();
