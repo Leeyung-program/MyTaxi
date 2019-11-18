@@ -19,4 +19,5 @@
     <string name="login_suc">注册成功</string>
     <string name="modify_pw">修改密码</string>
     <string name="error_server">服务器出错</string>
+    <string name="sending">正在向%s发送短信验证码</string>
 </resources>
