@@ -4,6 +4,7 @@ import com.liyang.mytaxi.common.http.IResponse;
 
 public class BaseResponse implements IResponse {
     public static final int STATE_UNKNOS_ERROR=100001;
+    public static final int STATE_OK = 200;
     private int code;
     private String data;
 

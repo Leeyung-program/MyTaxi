@@ -3,6 +3,8 @@ package com.liyang.mytaxi;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
+import com.liyang.mytaxi.account.view.PhoneInputDialog;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -20,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showPhoneInputDialog() {
-//        PhoneInputDialog dialog = new
-
+        PhoneInputDialog dialog = new PhoneInputDialog(this);
+        dialog.show();
     }
 }

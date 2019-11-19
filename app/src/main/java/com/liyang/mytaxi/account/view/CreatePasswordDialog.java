@@ -3,20 +3,37 @@ package com.liyang.mytaxi.account.view;
 import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
 import com.liyang.mytaxi.R;
+import com.liyang.mytaxi.common.http.IHttpClient;
+import com.liyang.mytaxi.common.http.IRequest;
+import com.liyang.mytaxi.common.http.IResponse;
+import com.liyang.mytaxi.common.http.api.API;
+import com.liyang.mytaxi.common.http.biz.BaseBizResponse;
+import com.liyang.mytaxi.common.http.imp.BaseRequest;
+import com.liyang.mytaxi.common.http.imp.BaseResponse;
+import com.liyang.mytaxi.common.http.imp.OkHttpClientImp;
+
+import java.lang.ref.SoftReference;
 
 /**
  * Created by TodayFu Lee on 2019/11/18.
  */
 
 public class CreatePasswordDialog extends Dialog {
+    private static final String TAG = "CreatePasswordDialog";
+    private static final int REGISTER_SUC = 1;
+    private static final int SERVER_FAIL = 100;
     private TextView mTitle;
     private TextView mPhone;
     private EditText mPw;
@@ -25,14 +42,18 @@ public class CreatePasswordDialog extends Dialog {
     private View mLoading;
     private TextView mTips;
     private String mPhoneStr;
+    private IHttpClient mHttpClient;
+    private MyHandler mHandler;
 
-    public CreatePasswordDialog(Context context, String mPhoneStr){
+    public CreatePasswordDialog(Context context, String mPhoneStr) {
         this(context, R.style.Dialog);
-        this.mPhoneStr=mPhoneStr;
+        this.mPhoneStr = mPhoneStr;
+        mHttpClient = new OkHttpClientImp();
+        mHandler = new MyHandler(this);
 
     }
 
-    public CreatePasswordDialog(Context context,  int themeResId) {
+    public CreatePasswordDialog(Context context, int themeResId) {
         super(context, themeResId);
     }
 
@@ -44,13 +65,11 @@ public class CreatePasswordDialog extends Dialog {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LayoutInflater inflater= (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View root=inflater.inflate(R.layout.dialog_create_pw,null);
+        LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View root = inflater.inflate(R.layout.dialog_create_pw, null);
         setContentView(root);
         intView();
-        checkUser();
     }
-
 
 
     private void intView() {
@@ -77,9 +96,33 @@ public class CreatePasswordDialog extends Dialog {
     }
 
     private void submit() {
-    if (checkPwd()){
-        String password = mPw.getText().toString();
-    }
+        if (checkPwd()) {
+            final String password = mPw.getText().toString();
+            final String phonePhone = mPhoneStr;
+            new Thread() {
+                @Override
+                public void run() {
+                    String url = API.Config.getDomain();
+//                            + API.REGISER;
+                    IRequest request = new BaseRequest(url);
+                    request.setBody("password", password);
+                    request.setBody("phone", phonePhone);
+                    IResponse response=mHttpClient.post(request, false);
+                    Log.d(TAG, response.getData());
+                    if (response.getCode()== BaseBizResponse.STATE_OK){
+                        BaseBizResponse bizResponse= new Gson().fromJson(response.getData(),BaseBizResponse.class);
+                        if (bizResponse.getCode()==BaseResponse.STATE_OK){
+                            mHandler.sendEmptyMessage(REGISTER_SUC);
+                        }
+                        else {
+                            mHandler.sendEmptyMessage(SERVER_FAIL);
+                        }
+                    }else{
+                        mHandler.sendEmptyMessage(SERVER_FAIL);
+                    }
+                }
+            }.start();
+        }
     }
 
     private boolean checkPwd() {
@@ -99,10 +142,6 @@ public class CreatePasswordDialog extends Dialog {
         return true;
     }
 
-    private void checkUser() {
-        mLoading.setVisibility(View.VISIBLE);
-        mTips.setText(getContext().getString(R.string.check_user));
-    }
 
     public void showOrHideLoading(boolean show) {
         if (show) {
@@ -129,7 +168,7 @@ public class CreatePasswordDialog extends Dialog {
 
     public void showLoginSuc() {
         dismiss();
-//        ToastUtil.show(getContext(), getContext().getString(R.string.login_suc));
+        //        ToastUtil.show(getContext(), getContext().getString(R.string.login_suc));
     }
 
     public void showUserExist(boolean exist) {
@@ -149,4 +188,28 @@ public class CreatePasswordDialog extends Dialog {
     }
 
 
+    static class MyHandler extends Handler {
+
+        SoftReference<CreatePasswordDialog> codeDialog;
+
+        public MyHandler(CreatePasswordDialog dialog) {
+            codeDialog = new SoftReference<CreatePasswordDialog>(dialog);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            CreatePasswordDialog dialog = codeDialog.get();
+            if (dialog != null) {
+                return;
+            }
+            switch (msg.what) {
+                case REGISTER_SUC:
+                    dialog.showRegisterSuc();
+                    break;
+                case SERVER_FAIL:
+                    dialog.showServerError();
+                    break;
+            }
+        }
+    }
 }

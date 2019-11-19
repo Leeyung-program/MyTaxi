@@ -7,14 +7,12 @@ import com.liyang.mytaxi.common.http.api.API;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
-public class OkhttpClientImpTest {
+public class OkHttpClientImpTest {
 
     IHttpClient iHttpClient;
     @Before
     public void setUp() throws Exception {
-        iHttpClient=new OkhttpClientImp();
+        iHttpClient=new OkHttpClientImp();
         API.Config.setDug(true);
     }
 

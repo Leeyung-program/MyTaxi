@@ -54,6 +54,26 @@ public class PhoneInputDialog extends Dialog {
                 check();
             }
         });
+        // 按钮注册监听
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+                String phone =  mPhone.getText().toString();
+                SmsCodeDialog dialog = new SmsCodeDialog(getContext(), phone);
+                dialog.show();
+            }
+        });
+
+
+        // 关闭按钮注册监听事件
+
+        findViewById(R.id.close).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PhoneInputDialog.this.dismiss();
+            }
+        });
     }
 
     private void check() {
