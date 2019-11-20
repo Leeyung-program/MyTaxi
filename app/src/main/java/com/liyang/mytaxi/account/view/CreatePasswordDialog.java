@@ -14,7 +14,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
+import com.liyang.mytaxi.MyTaxiApplication;
 import com.liyang.mytaxi.R;
+import com.liyang.mytaxi.account.bean.Account;
+import com.liyang.mytaxi.account.response.LoginResponse;
 import com.liyang.mytaxi.common.http.IHttpClient;
 import com.liyang.mytaxi.common.http.IRequest;
 import com.liyang.mytaxi.common.http.IResponse;
@@ -23,6 +26,9 @@ import com.liyang.mytaxi.common.http.biz.BaseBizResponse;
 import com.liyang.mytaxi.common.http.imp.BaseRequest;
 import com.liyang.mytaxi.common.http.imp.BaseResponse;
 import com.liyang.mytaxi.common.http.imp.OkHttpClientImp;
+import com.liyang.mytaxi.util.DevUtil;
+import com.liyang.mytaxi.util.SharedPreferencesDao;
+import com.liyang.mytaxi.util.ToastUtil;
 
 import java.lang.ref.SoftReference;
 
@@ -34,6 +40,7 @@ public class CreatePasswordDialog extends Dialog {
     private static final String TAG = "CreatePasswordDialog";
     private static final int REGISTER_SUC = 1;
     private static final int SERVER_FAIL = 100;
+    private static final int LOGIN_SUC = 2;
     private TextView mTitle;
     private TextView mPhone;
     private EditText mPw;
@@ -102,22 +109,21 @@ public class CreatePasswordDialog extends Dialog {
             new Thread() {
                 @Override
                 public void run() {
-                    String url = API.Config.getDomain();
-//                            + API.REGISER;
+                    String url = API.Config.getDomain() + API.REGISTER;
                     IRequest request = new BaseRequest(url);
                     request.setBody("password", password);
                     request.setBody("phone", phonePhone);
-                    IResponse response=mHttpClient.post(request, false);
+                    request.setBody("uid", DevUtil.UUID(getContext()));
+                    IResponse response = mHttpClient.post(request, false);
                     Log.d(TAG, response.getData());
-                    if (response.getCode()== BaseBizResponse.STATE_OK){
-                        BaseBizResponse bizResponse= new Gson().fromJson(response.getData(),BaseBizResponse.class);
-                        if (bizResponse.getCode()==BaseResponse.STATE_OK){
+                    if (response.getCode() == BaseBizResponse.STATE_OK) {
+                        BaseBizResponse bizResponse = new Gson().fromJson(response.getData(), BaseBizResponse.class);
+                        if (bizResponse.getCode() == BaseResponse.STATE_OK) {
                             mHandler.sendEmptyMessage(REGISTER_SUC);
-                        }
-                        else {
+                        } else {
                             mHandler.sendEmptyMessage(SERVER_FAIL);
                         }
-                    }else{
+                    } else {
                         mHandler.sendEmptyMessage(SERVER_FAIL);
                     }
                 }
@@ -162,13 +168,42 @@ public class CreatePasswordDialog extends Dialog {
         mTips.setTextColor(getContext().getResources().getColor(R.color.color_text_normal));
         mTips.setText(getContext().getString(R.string.register_suc_and_loging));
         // TODO: 请求网络，完成自动登录
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                String url = API.Config.getDomain() + API.LOGIN;
+                IRequest request = new BaseRequest(url);
+                request.setBody("phone", mPhoneStr);
+                String pwd = mPw.getText().toString();
+                request.setBody("password", pwd);
+                IResponse response = mHttpClient.post(request, false);
+                if (response.getCode() == BaseResponse.STATE_OK) {
+                    LoginResponse loginResponse =
+                            new Gson().fromJson(response.getData(), LoginResponse.class);
+                    if (loginResponse.getCode() == BaseBizResponse.STATE_OK) {
+                        Account account = loginResponse.getAccount();
+                        SharedPreferencesDao sharedPreferencesDao =
+                                new SharedPreferencesDao(MyTaxiApplication
+                                .getInstance(), SharedPreferencesDao.FILE_ACCOUNT);
+                        sharedPreferencesDao.save(SharedPreferencesDao.KEY_ACCOUNT, account);
+                        mHandler.sendEmptyMessage(LOGIN_SUC);
+                    } else {
+                        mHandler.sendEmptyMessage(SERVER_FAIL);
+                    }
+                } else {
+                    mHandler.sendEmptyMessage(SERVER_FAIL);
+                }
+            }
+        }.start();
 
     }
 
 
     public void showLoginSuc() {
         dismiss();
-        //        ToastUtil.show(getContext(), getContext().getString(R.string.login_suc));
+        ToastUtil.show(getContext(), getContext().getString(R.string.login_suc));
+
     }
 
     public void showUserExist(boolean exist) {
@@ -208,6 +243,9 @@ public class CreatePasswordDialog extends Dialog {
                     break;
                 case SERVER_FAIL:
                     dialog.showServerError();
+                    break;
+                case LOGIN_SUC:
+                    dialog.showLoginSuc();
                     break;
             }
         }

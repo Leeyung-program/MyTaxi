@@ -33,7 +33,6 @@ public class SharedPreferencesDao {
      *  读取 k-v
      */
     public String get(String key) {
-
         return sharedPreferences.getString(key, null);
     }
 

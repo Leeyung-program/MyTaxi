@@ -31,9 +31,12 @@ public class SmsCodeDialog extends Dialog {
 
     private static final String TAG = "SmsCodeDialog";
     private static final int SMS_SEND_SUC = 1;
-    private static final int SMS_SEND_FAIL = -1 ;
+    private static final int SMS_SEND_FAIL = -1;
     private static final int SMS_CHECK_SUC = 2;
     private static final int SMS_CHECK_FAIL = -2;
+    private static final int USER_EXIST = 3;
+    private static final int USER_NOT_EXIST = -3;
+    private static final int SMS_SERVER_FAIL = 100;
     private String mPhone;
     private Button mResentBtn;
     private VerificationCodeInput mVerificationInput;
@@ -43,58 +46,72 @@ public class SmsCodeDialog extends Dialog {
     private IHttpClient mHttpClient;
     private MyHandler mHandler;
 
-    private CountDownTimer countDownTimer=
-            new CountDownTimer(10000,1000) {
-        @Override
-        public void onTick(long millisUntilFinished) {
-            mResentBtn.setEnabled(false);
-            mResentBtn.setText(String.format(getContext()
-                    .getString(R.string.after_time_resend,
-                            millisUntilFinished/1000)));
-        }
+    private CountDownTimer countDownTimer =
+            new CountDownTimer(10000, 1000) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    mResentBtn.setEnabled(false);
+                    mResentBtn.setText(String.format(getContext()
+                            .getString(R.string.after_time_resend,
+                                    millisUntilFinished / 1000)));
+                }
 
-        @Override
-        public void onFinish() {
-            mResentBtn.setEnabled(true);
-            mResentBtn.setText(getContext().getString(R.string.resend));
-            cancel();
-        }
-    };
+                @Override
+                public void onFinish() {
+                    mResentBtn.setEnabled(true);
+                    mResentBtn.setText(getContext().getString(R.string.resend));
+                    cancel();
+                }
+            };
 
-    public SmsCodeDialog(Context context,String phone){
-        this(context,R.style.Dialog);
+    public SmsCodeDialog(Context context, String phone) {
+        this(context, R.style.Dialog);
         this.mPhone = phone;
         mHttpClient = new OkHttpClientImp();
-        mHandler  = new MyHandler(this);
+        mHandler = new MyHandler(this);
     }
+
     public SmsCodeDialog(Context context, int themeResId) {
         super(context, themeResId);
     }
 
-    static  class MyHandler extends Handler {
+    static class MyHandler extends Handler {
         //软引用
         SoftReference<SmsCodeDialog> codeDialogSoftRef;
-        public MyHandler(SmsCodeDialog smsCodeDialog){
+
+        public MyHandler(SmsCodeDialog smsCodeDialog) {
             codeDialogSoftRef = new SoftReference<SmsCodeDialog>(smsCodeDialog);
         }
 
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            SmsCodeDialog dialog=codeDialogSoftRef.get();
-            if (dialog!=null){
+            SmsCodeDialog dialog = codeDialogSoftRef.get();
+            if (dialog != null) {
                 return;
             }
-            switch (msg.what){
+            switch (msg.what) {
                 case SMS_SEND_SUC:
-                    dialog.showSendState(true);break;
+                    dialog.showSendState(true);
+                    break;
                 case SMS_SEND_FAIL:
-                    dialog.showSendState(false);break;
+                    dialog.showSendState(false);
+                    break;
                 case SMS_CHECK_SUC:
                     dialog.showVerifyState(true);
                     break;
                 case SMS_CHECK_FAIL:
                     dialog.showVerifyState(false);
+                    break;
+                case USER_EXIST:
+                    dialog.showUserExist(true);
+                    break;
+                case USER_NOT_EXIST:
+                    dialog.showUserExist(false);
+                    break;
+                case SMS_SERVER_FAIL:
+                    ToastUtil.show(dialog.getContext(),
+                            dialog.getContext().getString(R.string.error_server));
             }
         }
     }
@@ -104,7 +121,7 @@ public class SmsCodeDialog extends Dialog {
         super.onCreate(savedInstanceState);
         LayoutInflater inflater = (LayoutInflater)
                 getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View mRoot=inflater.inflate(R.layout.dialog_smscode_input,null);
+        View mRoot = inflater.inflate(R.layout.dialog_smscode_input, null);
         setContentView(mRoot);
         mPhoneTv = (TextView) findViewById(R.id.phone);
         String template = getContext().getString(R.string.sending);
@@ -120,7 +137,7 @@ public class SmsCodeDialog extends Dialog {
     }
 
     private void requestSendSmsCode() {
-        new Thread(){
+        new Thread() {
             @Override
             public void run() {
                 String url = API.Config.getDomain() + API.GET_SMS_CODE;
@@ -133,7 +150,7 @@ public class SmsCodeDialog extends Dialog {
                             new Gson().fromJson(response.getData(), BaseBizResponse.class);
                     if (bizRes.getCode() == BaseBizResponse.STATE_OK) {
                         mHandler.sendEmptyMessage(SMS_SEND_SUC);
-                    } else  {
+                    } else {
                         mHandler.sendEmptyMessage(SMS_SEND_FAIL);
                     }
                 } else {
@@ -149,13 +166,14 @@ public class SmsCodeDialog extends Dialog {
         super.onDetachedFromWindow();
         countDownTimer.cancel();
     }
-    public SmsCodeDialog(Context context,boolean cancelable, OnCancelListener cancelListener){
-        super(context,cancelable,cancelListener);
+
+    public SmsCodeDialog(Context context, boolean cancelable, OnCancelListener cancelListener) {
+        super(context, cancelable, cancelListener);
     }
 
     private void initListener() {
         //  关闭按钮组册监听器
-        findViewById(R.id.close).setOnClickListener(new View.OnClickListener(){
+        findViewById(R.id.close).setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -183,7 +201,7 @@ public class SmsCodeDialog extends Dialog {
 
     private void commit(final String code) {
         showLoading();
-        new Thread(){
+        new Thread() {
             @Override
             public void run() {
                 String url = API.Config.getDomain() + API.CHECK_SMS_CODE;
@@ -197,7 +215,7 @@ public class SmsCodeDialog extends Dialog {
                             new Gson().fromJson(response.getData(), BaseBizResponse.class);
                     if (bizRes.getCode() == BaseBizResponse.STATE_OK) {
                         mHandler.sendEmptyMessage(SMS_CHECK_SUC);
-                    } else  {
+                    } else {
                         mHandler.sendEmptyMessage(SMS_CHECK_FAIL);
                     }
                 } else {
@@ -226,7 +244,27 @@ public class SmsCodeDialog extends Dialog {
             mErrorView.setVisibility(View.GONE);
             mLoading.setVisibility(View.VISIBLE);
             //todo :检查用户是否存在
-
+            new Thread(){
+                @Override
+                public void run() {
+                    String url=API.Config.getDomain()+API.CHECK_USER_EXIST;
+                    IRequest request=new BaseRequest(url);
+                    request.setBody("phone",mPhone);
+                    IResponse response=mHttpClient.post(request,false);
+                    Log.d(TAG, response.getData());
+                    if (response.getCode()==BaseResponse.STATE_OK){
+                        BaseBizResponse bizResponse=new Gson()
+                                .fromJson(response.getData(),BaseBizResponse.class);
+                        if (bizResponse.getCode()==BaseBizResponse.STATE_USER_EXIST){
+                            mHandler.sendEmptyMessage(USER_EXIST);
+                        }else if (bizResponse.getCode()==BaseBizResponse.STATE_USER_NOT_EXIST){
+                            mHandler.sendEmptyMessage(USER_NOT_EXIST);
+                        }
+                    }else{
+                        mHandler.sendEmptyMessage(SMS_SERVER_FAIL);
+                    }
+                }
+            }.start();
 
         }
 
@@ -255,13 +293,15 @@ public class SmsCodeDialog extends Dialog {
         dismiss();
         if (!exist) {
             // todo 用户不存在,进入注册
-
-
+            CreatePasswordDialog dialog =
+                    new CreatePasswordDialog(getContext(), mPhone);
+            dialog.show();
 
         } else {
             // todo 用户存在 ，进入登录
-
-
+            // 用户存在 ，进入登录
+            LoginDialog dialog = new LoginDialog(getContext(), mPhone);
+            dialog.show();
         }
     }
 
