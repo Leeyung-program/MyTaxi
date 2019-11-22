@@ -164,11 +164,11 @@ public class CreatePasswordDialog extends Dialog implements ICreatePasswordDialo
 
     public void showRegisterSuc() {
         // 自动登录
-        //        mLoading.setVisibility(View.VISIBLE);
+                mLoading.setVisibility(View.VISIBLE);
         //        mBtnConfirm.setVisibility(View.GONE);
-        //        mTips.setVisibility(View.VISIBLE);
-        //        mTips.setTextColor(getContext().getResources().getColor(R.color.color_text_normal));
-        //        mTips.setText(getContext().getString(R.string.register_suc_and_loging));
+//                mTips.setVisibility(View.VISIBLE);
+//                mTips.setTextColor(getContext().getResources().getColor(R.color.color_text_normal));
+                mTips.setText(getContext().getString(R.string.register_suc_and_loging));
         //        // TODO: 请求网络，完成自动登录
         //        new Thread() {
         //            @Override
@@ -215,12 +215,19 @@ public class CreatePasswordDialog extends Dialog implements ICreatePasswordDialo
 
     @Override
     public void showPasswordNull() {
-
+        mTips.setVisibility(View.VISIBLE);
+        mTips.setText(getContext().getString(R.string.password_is_null));
+        mTips.setTextColor(getContext().
+                getResources().getColor(R.color.error_red));
     }
 
     @Override
     public void showPasswordNotEqual() {
-
+        mTips.setVisibility(View.VISIBLE);
+        mTips.setText(getContext()
+                .getString(R.string.password_is_not_equal));
+        mTips.setTextColor(getContext()
+                .getResources().getColor(R.color.error_red));
     }
 
     //    public void showUserExist(boolean exist) {

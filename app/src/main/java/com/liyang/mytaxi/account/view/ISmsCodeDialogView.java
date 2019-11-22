@@ -8,9 +8,9 @@ public interface ISmsCodeDialogView extends IView {
 
     void showCountDownTimer();
 
-    void close();
+//    void close();
 
     void showUserExist(boolean b);
 
-    void showSmsCodeCheckState(boolean b);
+    void showSmsCodeCheckState(boolean suc);
 }

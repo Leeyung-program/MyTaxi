@@ -58,7 +58,6 @@ public class PhoneInputDialog extends Dialog {
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                dismiss();
                 String phone =  mPhone.getText().toString();
                 SmsCodeDialog dialog = new SmsCodeDialog(getContext(), phone);
                 dialog.show();
